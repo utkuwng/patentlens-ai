@@ -1,0 +1,46 @@
+PATENTLENS v8 PRO — SEARCH + OCR
+================================
+
+Repo vẫn chỉ cần 3 file:
+- worker.js
+- package.json
+- wrangler.jsonc
+
+1) Upload đè 3 file lên GitHub repo.
+2) Commit main.
+3) Cloudflare sẽ auto-deploy từ GitHub.
+
+SEARCH TỰ ĐỘNG ỔN ĐỊNH
+-----------------------
+Google Patents có thể trả HTTP 503 khi bị gọi tự động từ IP datacenter/Cloudflare.
+Bản v8 có provider cascade:
+1. SERPAPI_KEY (ổn định nhất cho Google Patents)
+2. Google Patents direct (không cần key, nhưng có thể bị 503)
+3. EPO OPS nếu có credential
+
+Khuyến nghị cho prototype:
+Cloudflare → Worker patentlens-ai → Settings → Variables and Secrets
+→ Add secret:
+Name: SERPAPI_KEY
+Value: API key SerpApi của bạn
+→ Save / Deploy.
+
+Không đưa API key vào GitHub.
+
+Sau đó /api/health sẽ cho biết provider nào đã cấu hình.
+
+OCR v8
+------
+- OCR song ngữ vie + eng
+- render 2.35x
+- tiền xử lý grayscale + contrast + threshold
+- chạy pass thứ hai trên ảnh gốc nếu confidence thấp
+- page segmentation tối ưu cho block claim
+- query generation bỏ các từ thủ tục/generic và ưu tiên technical core terms
+
+TEST
+----
+/api/health
+→ providers.serpapi phải là true sau khi thêm secret.
+
+Sau đó vào Bước 5 → Tìm tài liệu thật.
