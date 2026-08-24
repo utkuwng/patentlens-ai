@@ -1,7 +1,7 @@
 PATENTLENS AI — BẢN FLAT, KHÔNG CẦN FOLDER
 ================================================
 
-Repo chỉ cần 3 file ở ngoài cùng:
+Repo chỉ cần 3 file ở ngoài cùng
 
 patentlens-ai/
 ├── worker.js
