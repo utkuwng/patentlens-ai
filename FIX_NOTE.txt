@@ -1,0 +1,39 @@
+PATENTLENS v8.1 — HOTFIX env
+=============================
+
+Lỗi v8:
+  {"ok":false,"error":"env is not defined"}
+
+Nguyên nhân:
+Worker gọi:
+  handleApi(request, env)
+nhưng fetch handler được khai báo:
+  async fetch(request)
+
+Bản v8.1 đã sửa thành:
+  async fetch(request, env)
+
+CÁCH CẬP NHẬT
+-------------
+1. Upload đè 3 file này lên GitHub repo:
+   - worker.js
+   - package.json
+   - wrangler.jsonc
+2. Commit vào branch main.
+3. Chờ Cloudflare auto-deploy thành công.
+4. Mở:
+   /api/health
+
+Kết quả đúng:
+{
+  "ok": true,
+  "service": "PatentLens AI",
+  "backend": "Cloudflare Worker",
+  "providers": {
+    "serpapi": false/true,
+    "epo_ops": false/true,
+    "google_direct": true
+  }
+}
+
+Nếu serpapi=false thì backend vẫn sống; chỉ có nghĩa chưa cấu hình SERPAPI_KEY.
