@@ -2,5 +2,8 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "patentlens-ai",
   "main": "./worker.js",
-  "compatibility_date": "2026-08-24"
+  "compatibility_date": "2026-08-24",
+  "browser": {
+    "binding": "BROWSER"
+  }
 }
