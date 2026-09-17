@@ -1,0 +1,13 @@
+{
+  "name": "patentlens-ai",
+  "version": "1.0.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "4.125.0"
+  }
+}
