@@ -1,0 +1,23 @@
+# PatentLens v25 — Sửa theo kiểm định (v24 → v25)
+
+**Phiên bản mã nguồn nghiên cứu, chưa được kiểm định nghiệp vụ hoặc triển khai lên domain người dùng.** Các thay đổi dưới đây có bằng chứng là code/kiểm thử giả lập; không phải chỉ số hiệu quả trên sáng chế thật.
+
+| Phát hiện ở v24 | Thay đổi thực tế trong v25 | Điều vẫn KHÔNG thể kết luận |
+|---|---|---|
+| AI có thể trả “Không tìm thấy” khi client tự đánh dấu tài liệu là toàn văn | `/api/matrix` **luôn** chuyển kết quả âm tính do AI sang “Chưa chắc chắn”, kể cả khi payload ghi `expert_full_verified`. UI có nhánh “Đã khảo sát nhưng chưa phát hiện” yêu cầu chuyên gia ghi phạm vi đã đọc và xác nhận đã thử nhiều cách diễn đạt; nhãn này vẫn không chứng minh vắng mặt. | Chưa có máy kiểm tra phủ toàn văn, hình vẽ hay đánh giá ngữ nghĩa đủ để chứng minh điều gì đó không tồn tại. |
+| Mô hình đưa trạng thái Có/Một phần mà người dùng dễ hiểu nhầm là đã duyệt | Cả **Có** và **Một phần** trong ma trận hiệu lực chỉ được dùng khi đã lưu duyệt của chuyên gia, kèm nguồn, nguyên văn và vị trí. Override Có/Một phần cũng chịu điều kiện tương tự. | Việc chuyên gia tích xác nhận chỉ là xác nhận của người dùng, backend chưa xác thực độc lập tài liệu nguồn và đúng ngữ cảnh. |
+| Chọn closest prior art tự động theo D1 | Dropdown bắt đầu **trống**; người kiểm tra chọn D1/D2/D3 và nhập lý do chọn tài liệu trước khi chạy tổng hợp nhận định. | Chưa tự xác định được tài liệu gần nhất, động cơ kết hợp hay kết luận trình độ sáng tạo. |
+| Bước 7 không có trợ lý gợi ý căn cứ để chuyên gia nghiên cứu | Thêm **tùy chọn** “Gợi ý đoạn liên quan từ D2/D3” dùng Gemini. Chỉ gợi ý tối đa hai câu trích/tài liệu; từng câu phải có trong văn bản được gửi. Không tự điền Could–Would, không suy ra động cơ kết hợp. Chỉ gọi khi người dùng tắt chế độ bảo mật, tích đồng ý gửi nội dung và có mã API tính năng AI. | Khớp chữ không xác minh nguồn, ngữ cảnh, hình vẽ, tác dụng kỹ thuật hoặc tư cách đối chứng. Chưa có thử nghiệm mô hình thật. |
+| PDF/OCR sai nhưng người dùng có thể đi tiếp mà chưa đọc lại | Sau khi tải PDF, bước nhập yêu cầu tích “Tôi đã kiểm tra và sửa thông tin, claims ... theo PDF gốc”; tải lại/đọc OCR lại/parse lại claims làm mất xác nhận cũ. | Checkbox không thay thế việc đối chiếu ảnh PDF và không đảm bảo người dùng đã kiểm tra đúng. Không áp dụng gate OCR cho dữ liệu dán thủ công. |
+| Chuyển tiếp khi feature chưa xác nhận | Không cho sang bước kế tiếp nếu chưa bấm **Xác nhận bộ dấu hiệu**. Parse lại claims hủy ma trận/duyệt cũ. | Bộ tách feature vẫn chủ yếu dựa quy tắc và cần chuyên gia rà soát, đặc biệt với claim phụ thuộc/định lượng. |
+| Tìm tiếng Việt và tiếng Anh dễ bị hệ thống tự trộn trong cùng truy vấn | Có hai **ô nhập truy vấn riêng**; bật “Chỉ chạy” để gửi mỗi truy vấn nguyên văn thành một lượt API riêng với `language_track=en/vi`. Backend không tự dịch, gộp hoặc sinh thêm biến thể cho lượt đã chọn chế độ này; log từng lượt. | Không có API tra cứu sáng chế Việt Nam tự động; một câu tiếng Việt gửi qua Google Patents/SerpApi không tương đương tra VN. Chế độ biến thể tự động cũ có thể còn trộn ngôn ngữ; muốn tách hẳn, phải tick “Chỉ chạy”. |
+| Đánh dấu đã kiểm chứng nguồn dù chỉ có nội dung ngắn | `sourceVerified` không nhận snippet, abstract-only, metadata-only, unknown, mô tả bị cắt; bắt người xác nhận identity, ngày, nội dung và có nội dung đáng kể. | Mã nguồn, toàn văn, vị trí trang/đoạn và pháp lý vẫn cần tự kiểm tra ở bản gốc. |
+| Test script v24 chỉ là mock | `test_v25.mjs` gồm **16 bài kiểm thử tự động** cho API mô phỏng và một số bất biến HTML/code; thêm các ca âm tính AI, gợi ý motivation, đồng ý gửi dữ liệu và hai luồng ngôn ngữ riêng. | Các bài kiểm thử **không** là phép đo Precision/Recall, không test API thật, không chứng minh tối ưu HCI. Thử mở giao diện trên Chromium trong container bị chính sách môi trường chặn; cần thử trên thiết bị thật sau deploy. |
+
+## Không được quảng bá v25 là gì?
+
+Không coi là hệ thống tìm hết sáng chế thế giới, đủ đa ngôn ngữ, có thẩm định pháp lý tự động, đã được IP GROUP duyệt, có thể xử lý hồ sơ mật trên web public, hoặc đã “chống ảo giác tuyệt đối”. Vẫn giữ hai lựa chọn đầu vào thuộc phạm vi prototype; khảo sát công nghệ và FTO chỉ là gợi ý công việc **sau báo cáo**.
+
+## Các việc chưa thực hiện, không được gọi là đã sửa
+
+Không tích hợp truy xuất toàn văn/hình vẽ chính thức từ mọi quốc gia, tự tra cứu VN, gom họ sáng chế thực, xử lý tự động trường hợp đơn nộp trước–công bố sau, phân tích nghĩa kỹ thuật độc lập với AI, PDF viewer hai cột cho mọi nguồn, đăng nhập/rate-limit ở Cloudflare, hoặc benchmark 5–10 case công khai với chuyên gia. `PILOT_EVALUATION.md` là biểu mẫu trống dành cho số liệu thực nghiệm sau này.
