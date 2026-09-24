@@ -1,0 +1,37 @@
+# PatentLens AI v38 — đúng 5 bước hiển thị / file phẳng trên GitHub
+
+Đây là **prototype nghiên cứu**, không phải hệ thống thẩm định hay bảo đảm tra cứu đầy đủ toàn cầu. Khởi đầu dựa trên v37, **giao diện và logic trình duyệt được thiết kế lại** thành đúng 5 bước do người dùng yêu cầu; backend Worker được giữ lại các API tìm kiếm/chi tiết/AI có kiểm soát. Các tính năng giao diện v37 không nằm trong 5 bước được chốt (ví dụ một số biểu mẫu Could–Would chi tiết, thao tác FTO, các màn hình phụ) KHÔNG mặc định được duy trì trong v38.
+
+## File cùng cấp tại thư mục gốc repo
+
+`index.html` — 5 màn hình; `style.css` — thiết kế; `app.js` — xử lý trình duyệt/PDF, định tuyến, tìm kiếm và ma trận; `topic_lexicon.js` — **kho từ khởi tạo** 3 chủ đề; `worker.js` — backend tìm kiếm qua SerpApi/Google Patents và EPO OPS khi cấu hình, tải chi tiết Google Patents, Gemini evidence; `wrangler.jsonc` — triển khai Cloudflare Worker + Static Assets; `.assetsignore` — ngăn backend/secret/config bị public qua thư mục assets; `README.md` — hướng dẫn này. Không có thư mục con, không cần giải mã HTML base64.
+
+## 5 bước được triển khai
+
+1. **Nhập liệu:** keyword, mô tả hoặc PDF. Đọc text-layer từng trang; OCR các trang chưa đọc theo đợt 8 trang hoặc chọn OCR toàn bộ (có thể lâu). Chỉ nhận claims nếu có phần Claims/Yêu cầu bảo hộ có đánh số hoặc tối thiểu 2 dòng claims có cấu trúc liên tiếp. Mẫu keyword/mô tả không được tự suy ra claims/feature giả. Các trang lỗi được giữ lại; không dùng thông báo 100% nếu OCR/trang gốc còn thiếu.
+2. **Định tuyến:** rà thuật ngữ trong toàn bộ *văn bản trích xuất đã nạp*, chia lô để không âm thầm bỏ phần giữa; map đa nhãn vào Quy trình sản phẩm, Công nghệ thông tin, Hệ thống/thiết bị. Hiển thị concept gốc đã khớp và biến thể từ kho từ; biến thể là gợi ý truy vấn, chưa phải synonym pháp lý hay mô hình ML đã huấn luyện. Không lặp lại phân loại ở bước tìm.
+3. **Tìm nguồn:** tạo danh mục truy vấn theo từng concept hoặc từ khóa gốc. Nhận đồng ý gửi truy vấn kỹ thuật ra ngoài. `/api/search` gọi SerpApi / Google Patents (direct fallback nếu chưa có SerpApi) và EPO OPS nếu đã có credential. Lưu log từng nguồn, trạng thái ZERO khác ERROR, gộp theo mã công bố. Xếp ưu tiên đọc theo từ xuất hiện ở title/snippet, **không phải chứng minh đã đọc toàn văn hoặc độ chính xác**. Người dùng có thể tự chọn D1–D3 hoặc bấm gợi ý chọn ba ứng viên đầu. `/api/detail` thử lấy claims/mô tả khi nguồn cho phép; vẫn phải mở bản gốc. Google Patents / WIPO PATENTSCOPE / Espacenet / Cục SHTT Việt Nam có liên kết mở tra **thủ công**; WIPO/IPVN *không phải API tự cào của v38*.
+4. **So sánh:** có claims → tạo feature riêng theo claim, kế thừa chuỗi phụ thuộc đơn; nhiều nhánh phụ thuộc chưa rõ sẽ ghi cảnh báo, không tự chọn nhánh. Không có claims → tạo hàng concept; đây là báo cáo khảo sát theo keyword, KHÔNG nhận định pháp lý về tính mới/trình độ sáng tạo. Đối chiếu với D1–D3. AI Gemini là **nút tùy chọn** chỉ dành cho hồ sơ có claims, consent và mã truy cập chuyên sâu. Đối với văn bản D1–D3 đã nạp, chia thành chunks có chồng lấn; kiểm toán vị trí trước khi gửi; Worker xác nhận fingerprint của đoạn đã nhận; mọi lượt lỗi/không thực hiện không được tính là đã đọc. Chuyên gia xác minh đoạn trích nguyên văn, vị trí, nguồn và ghi lý do trước khi lưu “Có/Một phần”. Quote khớp chữ KHÔNG chứng minh nguồn gốc hay ngữ nghĩa kỹ thuật.
+5. **Báo cáo:** tổng hợp từng claim nếu có claims. Một ứng viên phủ toàn bộ claim chỉ được hiển thị khi có các xác nhận riêng về nguồn, vị trí, mốc ngày từng claim, quan hệ trong cùng tổ hợp, bản claim được rà soát và không còn trang PDF chưa đọc đủ. Ngay cả lúc đó cũng là ứng viên để chuyên gia thẩm định, **không phải kết luận thiếu tính mới của cơ quan nhà nước**. Trình độ sáng tạo vẫn do chuyên gia phân tích. Keyword-only chỉ có kết quả khảo sát concept; không bịa novelty/inventive step. Có báo cáo HTML (có thể Print → PDF) và bảng CSV tách rõ AI gợi ý/đã được chuyên gia xác nhận. Lưu nháp là JSON **chưa mã hóa, không chứa PDF gốc**, mở lại phải nạp PDF và xác minh các nguồn.
+
+## Deploy — bắt buộc dùng cấu hình Static Assets
+
+1. Giải nén ZIP, **đưa từng file bên trong** lên cùng cấp tại root repo GitHub. Bao gồm `.assetsignore` (trên Mac có thể ẩn; Cmd+Shift+. để hiện). Không tải nguyên ZIP và không chỉ dán `worker.js` trong dashboard.
+2. Đảm bảo GitHub/Cloudflare thật sự sử dụng `wrangler.jsonc` và deploy cả `index.html`, `app.js`, `style.css`, `topic_lexicon.js`. Tại root repo, đăng nhập Wrangler đúng Cloudflare account (nếu chưa), chạy `npx wrangler@4 deploy`. Nếu bạn đã có CI/CD riêng, kiểm tra workflow đó triển khai **Worker + Static Assets**, không phải chỉ Worker script. Không gửi API key lên GitHub.
+3. Kiểm tra `https://patentlens-ai.lehuynhnhu0208.workers.dev/api/health` báo `38.0.0`; rồi mở `/`, `/app.js`, `/topic_lexicon.js`, `/style.css`. `/api/health` chỉ chứng minh Worker đang phản hồi, KHÔNG chứng minh SerpApi/Gemini đã hoạt động. Nếu health báo v38 nhưng `/` lỗi 404/503, kiểm tra assets deploy, đừng sửa Gemini key hoặc xóa cookie.
+4. Cấu hình Cloudflare Production Secrets **chỉ khi dùng chức năng tương ứng**: `SERPAPI_KEY` (tìm kiếm theo SerpApi); `GEMINI_API_KEY` và `DEEP_SEARCH_ACCESS_CODE` (>=12 ký tự) cho Gemini; `EPO_CONSUMER_KEY` + `EPO_CONSUMER_SECRET` cho OPS; tùy chọn `PUBLIC_API_ACCESS_CODE` (>=12 ký tự). Tuyệt đối không nhập Gemini API key vào ô mã truy cập AI trong giao diện. Với web public, cần Cloudflare Access/WAF/rate limits và quản lý quota để tránh gọi API tốn phí trái phép.
+
+## Giới hạn chưa kiểm định
+
+- **Không có bảo đảm OCR/AI hiểu đúng 100% mọi PDF**, bảng, hình vẽ, hóa học hoặc font lỗi; trang yếu phải OCR bổ sung, có thể rất chậm với tài liệu scan nhiều trang. UI chỉ kiểm toán lớp chữ/OCR đã nạp, không chứng thực văn bản gốc đã đọc đủ. Chưa có tác vụ máy chủ bất đồng bộ cho OCR dài, chưa có lưu trữ riêng nhiều người dùng, chưa có virus scan, chưa có parser hình vẽ.
+- Kho thuật ngữ `topic_lexicon.js` là danh mục nhỏ ban đầu, không phải mô hình đã học từ dữ liệu lớn, không xác thực IPC/CPC. Ba nhánh là định tuyến tìm kiếm, không phải bộ lọc cứng ngăn tra cứu xuyên nhóm.
+- Truy vấn API nguồn có thể lỗi/hết quota, không chứng minh tìm hết patent toàn cầu; WIPO/Cục SHTT Việt Nam chưa có API tự động ở bản này, Crossref/NPL không phải bước mặc định trong UI v38. Candidate D1–D3 được sắp dựa title/snippet, không có mô hình embedding/reranker toàn văn.
+- Ngày ưu tiên và tư cách pháp lý từng claim, nội dung implicit, hiệu quả kỹ thuật, văn bản sau mốc công bố và lập luận Could–Would phải được chuyên gia có thẩm quyền kiểm tra. Không biến “đã cấp bằng” thành ground truth về từng claim.
+- Các kết quả kiểm thử mô phỏng trong môi trường phát triển không phải kiểm thử với chính PDF của người dùng hoặc trên Cloudflare Production. Cần thử PDF công khai thật, API provider thật và bộ đối chứng chuyên gia trước khi dùng số liệu cho khóa luận.
+
+## Nghiệm thu tối thiểu sau deploy
+
+- Keyword-only không xuất hiện claim/feature giả, có thể định tuyến + tìm + lập ma trận concept, báo cáo ghi “không đánh giá tính mới”.
+- PDF có claims → phân tích theo từng claim, không gộp D1+D2+D3 để tuyên bố claim mất tính mới; claim đa nhánh phải báo chưa rõ.
+- PDF lớn → thanh tiến độ theo trang, trang lỗi không làm dừng các trang sau và không tự biến thành bằng chứng âm tính; OCR bổ sung có thể dừng.
+- Nguồn tìm kiếm lỗi ≠ ZERO, link WIPO/Espacenet/IP VN là tra thủ công; snippet không được gọi là toàn văn; ô “Có” không có quote/vị trí/xác minh nguồn sẽ bị chặn.
