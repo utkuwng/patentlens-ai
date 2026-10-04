@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PatentLens AI — Patent Research Workspace</title>
+  <meta name="description" content="Prototype hỗ trợ đọc hồ sơ, trích keyword động, tra cứu prior art online và đối chiếu bằng chứng.">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/keyword_extractor.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-orb">PL</div>
+      <div><strong>PatentLens AI</strong><small>Patent research workspace</small></div>
+    </div>
+    <div class="flow-label">RESEARCH FLOW</div>
+    <nav id="steps" aria-label="Các bước thực hiện"></nav>
+    <div class="connection-card">
+      <span class="connection-dot"></span><strong>Kết nối dịch vụ</strong>
+      <p>Search, phân loại và chuẩn hóa VI/EN chạy qua backend. API key thật không hiển thị ở trình duyệt.</p><div id="serviceHealth" class="service-health">Đang kiểm tra dịch vụ…</div>
+      <input id="apiCode" type="hidden" value="">
+      <p class="muted small">Không cần nhập API key ở giao diện. Phân loại có thể dùng Workers AI binding của Cloudflare; tìm kiếm vẫn có nguồn không cần key.</p>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="top-copy">
+        <span class="eyebrow" id="stepCount">BƯỚC 01 / 05</span>
+        <h1 id="stepTitle">Nhập liệu</h1>
+        <p id="stepIntro">Tải PDF hoặc dán mô tả/yêu cầu bảo hộ.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="quiet" id="saveDraft">Lưu nháp</button>
+        <label class="quiet upload-draft">Mở nháp<input id="openDraft" type="file" accept=".json,application/json" hidden></label>
+      </div>
+    </header>
+
+    <div class="flow-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <div id="alert" class="alert" hidden role="status" aria-live="polite"></div>
+
+    <section class="stage active" id="stage-intake">
+      <div class="stage-head"><div><span class="stage-num">01</span><h2>Đưa hồ sơ vào hệ thống</h2></div><p>PatentLens đọc lớp chữ trước, OCR khi cần và không tự tạo nội dung bị thiếu.</p></div>
+      <div class="intake-grid">
+        <article class="panel upload-panel">
+          <div class="panel-icon">PDF</div>
+          <h3>Tải tài liệu</h3>
+          <p class="muted">Ưu tiên PDF có lớp chữ. Với trang scan, hệ thống sẽ đánh dấu phần cần OCR.</p>
+          <div class="upload">
+            <label class="filebtn" for="pdfFile">Chọn PDF</label>
+            <input type="file" id="pdfFile" accept="application/pdf,.pdf">
+            <span id="fileName">Chưa chọn tệp</span>
+          </div>
+          <div class="status" id="ingestState">Chưa có dữ liệu đầu vào.</div>
+          <div class="progress"><span id="ingestProgress"></span></div>
+          <p class="muted small" id="pageAudit"></p>
+          <div class="inline compact-actions">
+            <button type="button" class="quiet" id="stopPdf" hidden>Dừng đọc</button>
+            <button type="button" class="quiet" id="ocrClaims" hidden>OCR vùng claims</button>
+            <button type="button" class="quiet" id="ocrMissing" hidden>OCR 8 trang tiếp</button>
+            <button type="button" class="quiet" id="ocrAll" hidden>OCR toàn bộ phần thiếu</button>
+          </div>
+        </article>
+
+        <article class="panel text-panel">
+          <div class="panel-icon accent">TXT</div>
+          <h3>Hoặc nhập nội dung</h3>
+          <p class="muted">Có thể dán mô tả kỹ thuật, yêu cầu bảo hộ hoặc tập từ khóa ban đầu.</p>
+          <label for="sourceText">Nội dung đầu vào</label>
+          <textarea id="sourceText" rows="10" placeholder="Dán mô tả kỹ thuật hoặc phần Claims/Yêu cầu bảo hộ..."></textarea>
+          <button type="button" id="useText" class="btn primary">Phân tích nội dung này</button>
+        </article>
+      </div>
+      <details class="panel slim"><summary>Kiểm tra phần máy đã đọc và claims</summary><p class="muted small">OCR có thể sai ký tự hoặc gộp claims. Các phần chưa chắc chắn được giữ để chuyên viên kiểm tra.</p><div id="claimsPreview" class="claim-preview"></div></details>
+    </section>
+
+    <section class="stage" id="stage-route">
+      <div class="stage-head"><div><span class="stage-num">02</span><h2>Phân tích nội dung & xác định trụ cột</h2></div><p>Hệ thống tự đọc hồ sơ, nhận diện Việt/Anh, trích và chuẩn hóa keyword từ chính tài liệu, sau đó tự chọn một trong ba trụ cột. Người dùng có thể đổi lại nếu cần.</p></div>
+      <div class="panel"><div id="modeBadge" class="badge"></div><div id="routeResult" class="topics"></div></div>
+      <details class="panel slim"><summary>Xem văn bản đã quét</summary><p class="muted small" id="routeScope"></p><textarea id="originalPreview" rows="8" readonly></textarea></details>
+    </section>
+
+    <section class="stage" id="stage-search">
+      <div class="stage-head"><div><span class="stage-num">03</span><h2>Tra cứu tài liệu liên quan trực tuyến</h2></div><p>Hệ thống tạo truy vấn VI/EN từ keyword của hồ sơ, tìm tài liệu sáng chế và tài liệu khoa học liên quan trên các nguồn online; D1–D3 được ưu tiên theo mức khớp keyword.</p></div>
+      <div class="search-layout">
+        <article class="panel search-control">
+          <div class="panel-title-row"><div><span class="card-kicker">SEARCH PLAN</span><h3>Truy vấn sẽ chạy</h3></div><span class="tag soft" id="searchPillarHint">Theo trụ cột đã chọn</span></div>
+          <p class="muted">Bạn có thể chỉnh lại truy vấn trước khi tìm. Truy vấn tự động có nhãn [VI]/[EN] để hệ thống thử cả hai hướng tìm kiếm; không dùng bộ từ khóa chuyên ngành cố định.</p>
+          <label class="check"><input type="checkbox" id="searchConsent"> Tôi đồng ý gửi các truy vấn kỹ thuật ngắn ra dịch vụ tìm kiếm/dịch bên ngoài.</label>
+          <label for="searchQueries">Các truy vấn</label>
+          <textarea id="searchQueries" rows="7" placeholder="Ví dụ: [EN] vibration sensor fault prediction
+[VI] cảm biến rung dự báo hỏng hóc"></textarea>
+          <div class="inline"><button class="btn primary" id="runSearch">Tìm tài liệu online</button><button class="btn" id="stopSearch" hidden>Dừng</button></div>
+          <p class="status" id="searchProgress">Chưa chạy tìm kiếm.</p>
+          <details><summary>Nhật ký truy vấn và nguồn</summary><div id="searchLog" class="log muted">Chưa có lượt tìm.</div></details>
+          <div class="manual-sources"><strong>Mở nhanh nguồn tra cứu:</strong><div id="sourceLinks" class="inline"></div></div>
+        </article>
+
+        <article class="panel shortlist-panel">
+          <div class="between"><div><span class="card-kicker">SHORTLIST</span><h3>Ứng viên tài liệu liên quan</h3></div><button class="btn secondary" id="autoPick">Đọc sâu & chọn D1–D3</button></div>
+          <p class="muted small">Hệ thống đọc sâu một nhóm ứng viên và xếp ưu tiên theo mức trùng keyword với hồ sơ đầu vào. Kết quả có thể gồm patent và paper/NPL; đây chỉ là thứ tự ưu tiên đọc.</p>
+          <div class="candidates" id="candidates">Chưa có kết quả tìm kiếm.</div>
+        </article>
+      </div>
+      <article class="panel"><div class="panel-title-row"><div><span class="card-kicker">PRIOR ART SET</span><h3>D1 – D3 được lựa chọn</h3></div></div><p class="muted">Có thể thay tài liệu hoặc bổ sung nội dung nguồn trước khi sang bước đối chiếu.</p><details open><summary>Thông tin D1–D3</summary><div id="priorSlots" class="prior-grid"></div></details></article>
+    </section>
+
+    <section class="stage" id="stage-compare">
+      <div class="stage-head"><div><span class="stage-num">04</span><h2>Đối chiếu dấu hiệu & bằng chứng</h2></div><p>Mỗi dấu hiệu/keyword được đối chiếu với từng tài liệu. Highlight chỉ là vị trí văn bản liên quan, không tự động trở thành kết luận chuyên môn.</p></div>
+      <article class="panel">
+        <div id="compareMode" class="notice"></div>
+        <div class="matrix-toolbar"><div><span class="legend-dot yes"></span>Có <span class="legend-dot partial"></span>Một phần <span class="legend-dot unsure"></span>Chưa chắc chắn</div><button class="btn secondary" id="aiAssist">AI đọc sâu thêm</button></div>
+        <details id="aiOptions"><summary>Tùy chọn AI đọc sâu</summary><label class="check"><input type="checkbox" id="privateMode" checked> Chế độ bảo mật: không gửi nội dung sang Gemini</label><label class="check"><input type="checkbox" id="aiConsent"> Tôi đồng ý gửi đặc điểm và đoạn D1–D3 sang Gemini.</label><label for="deepCode">Mã truy cập AI chuyên sâu</label><input type="password" id="deepCode" autocomplete="off" placeholder="DEEP_SEARCH_ACCESS_CODE"></details>
+        <p class="status" id="aiProgress">AI chỉ hỗ trợ tìm câu trích; chuyên viên vẫn kiểm tra ngữ cảnh và nguồn.</p>
+        <p class="small muted" id="reviewRankSummary" aria-live="polite"></p>
+        <div id="matrix" class="matrix"></div>
+      </article>
+    </section>
+
+    <section class="stage" id="stage-report">
+      <div class="stage-head"><div><span class="stage-num">05</span><h2>Nhận định sơ bộ & báo cáo</h2></div><p>Tổng hợp D1–D3, bằng chứng và các giới hạn chưa được xác minh để chuyên viên rà soát.</p></div>
+      <article class="panel report-panel"><div id="conclusion" class="conclusion"></div>
+        <details><summary>Thông tin pháp lý bổ sung</summary><div id="claimDatesReview"></div><label class="check"><input type="checkbox" id="claimInputVerified"> Tôi đã đối chiếu bộ claims đang đánh giá với bản gốc/bản dự thảo và kiểm tra quan hệ phụ thuộc.</label></details>
+        <label for="expertNote">Nhận xét chuyên gia</label><textarea id="expertNote" rows="5" placeholder="Giới hạn tra cứu, điểm chưa kiểm tra, bằng chứng cần đối chiếu thêm..."></textarea>
+        <label class="check"><input type="checkbox" id="expertSignoff"> Tôi đã xem nhận định sơ bộ của máy.</label>
+        <div class="report-actions"><button class="btn primary" id="makeReport">Tạo báo cáo dự thảo</button><button class="btn" id="exportHtml">Xuất HTML</button><button class="btn" id="exportCsv">Xuất CSV</button></div>
+        <details><summary>Xem báo cáo đầy đủ</summary><div id="reportPreview" class="report-preview"></div></details>
+      </article>
+    </section>
+
+    <footer class="wizard"><button type="button" id="back" class="btn">← Quay lại</button><div id="wizardInfo">Bước 1/5</div><button type="button" id="next" class="btn primary">Tiếp tục →</button></footer>
+  </main>
+</div>
+</body>
+</html>
