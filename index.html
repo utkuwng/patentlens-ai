@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PatentLens AI — Patent Intelligence Workspace</title>
+  <meta name="description" content="Prototype nghiên cứu: trích xuất keyword trực tiếp từ tài liệu, định tuyến 3 nhóm, tra cứu prior art và đối chiếu bằng chứng.">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"><span>P</span></span>
+      <div class="brand-copy">
+        <strong>PatentLens AI</strong>
+        <small>Patent intelligence workspace</small>
+      </div>
+    </div>
+
+    <div class="side-label">RESEARCH FLOW</div>
+    <nav id="steps" aria-label="Các bước thực hiện"></nav>
+
+    <div class="side-foot">
+      <div class="status-dot"><i></i><span>Evidence-first workflow</span></div>
+      <p>Bản nghiên cứu · Kết quả máy cần được kiểm tra trên tài liệu gốc.</p>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div class="top-copy">
+        <div class="top-kicker">
+          <span class="eyebrow" id="stepCount">BƯỚC 01 / 05</span>
+          <span class="research-chip">HUMAN-IN-THE-LOOP</span>
+        </div>
+        <h1 id="stepTitle">Nhập liệu</h1>
+        <p class="muted" id="stepIntro">Tải PDF hoặc dán mô tả/yêu cầu bảo hộ.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="quiet" id="saveDraft"><span>↓</span> Lưu nháp</button>
+        <label class="quiet upload-draft"><span>↑</span> Mở nháp<input id="openDraft" type="file" accept=".json,application/json" hidden></label>
+      </div>
+    </header>
+
+    <div id="alert" class="alert" hidden role="status" aria-live="polite"></div>
+
+    <section class="stage active" id="stage-intake">
+      <div class="panel panel-featured">
+        <div class="panel-heading">
+          <div><span class="section-index">01</span><div><h2>Đưa tài liệu vào</h2><p class="muted">Bắt đầu từ PDF hoặc nội dung kỹ thuật. Hệ thống chỉ nhận diện claims khi cấu trúc đủ rõ.</p></div></div>
+        </div>
+
+        <div class="choice choice-segmented" role="group" aria-label="Loại hồ sơ">
+          <button type="button" data-mode="prospective" class="selected">Chuẩn bị đăng ký</button>
+          <button type="button" data-mode="retrospective">Kiểm thử tài liệu công khai</button>
+        </div>
+
+        <div class="intake-grid">
+          <div class="input-card upload-card">
+            <div class="input-card-head"><span class="input-icon">PDF</span><div><strong>Tải hồ sơ</strong><small>Ưu tiên PDF có lớp chữ; trang scan có thể OCR bổ sung.</small></div></div>
+            <div class="upload">
+              <label class="filebtn" for="pdfFile">Chọn PDF</label>
+              <input type="file" id="pdfFile" accept="application/pdf,.pdf">
+              <span id="fileName">Chưa chọn tệp</span>
+            </div>
+            <div class="status-block">
+              <div class="status" id="ingestState">Chưa có dữ liệu đầu vào.</div>
+              <div class="progress"><span id="ingestProgress"></span></div>
+              <p class="muted small" id="pageAudit"></p>
+            </div>
+          </div>
+
+          <div class="input-card text-card">
+            <div class="input-card-head"><span class="input-icon">TXT</span><div><strong>Hoặc nhập nội dung</strong><small>Dùng khi cần khảo sát nhanh mô tả kỹ thuật hoặc claims.</small></div></div>
+            <label class="sr-only" for="sourceText">Từ khóa, mô tả kỹ thuật hay nội dung yêu cầu bảo hộ</label>
+            <textarea id="sourceText" rows="9" placeholder="Dán mô tả kỹ thuật hoặc phần Yêu cầu bảo hộ / Claims tại đây..."></textarea>
+            <button type="button" id="useText" class="btn secondary-wide">Sử dụng văn bản đã dán</button>
+          </div>
+        </div>
+
+        <div class="inline utility-row">
+          <button type="button" class="quiet" id="stopPdf" hidden>Dừng đọc PDF</button>
+          <button type="button" class="quiet" id="ocrClaims" hidden>Ưu tiên OCR vùng claims</button>
+          <button type="button" class="quiet" id="ocrMissing" hidden>OCR bổ sung 8 trang</button>
+          <button type="button" class="quiet" id="ocrAll" hidden>OCR toàn bộ phần còn thiếu</button>
+        </div>
+
+        <details class="subtle-details"><summary>Kiểm tra nội dung máy đọc và claims</summary><p class="muted small">OCR/lớp chữ có thể sai. Phần chưa đọc được luôn được giữ ở trạng thái cần kiểm tra.</p><div id="claimsPreview" class="claim-preview"></div></details>
+      </div>
+    </section>
+
+    <section class="stage" id="stage-route">
+      <div class="panel panel-featured">
+        <div class="panel-heading">
+          <div><span class="section-index">02</span><div><h2>Phân tích nội dung và định tuyến</h2><p class="muted">Keyword được trích trực tiếp từ tài liệu đầu vào, sau đó dùng để xác định một trong ba trụ cột kỹ thuật.</p></div></div>
+          <div id="modeBadge" class="badge"></div>
+        </div>
+        <div id="routeResult" class="topics"></div>
+        <div class="details-grid">
+          <details class="subtle-details"><summary>Kết nối API</summary><label for="apiCode">Mã truy cập API<input id="apiCode" type="password" autocomplete="off" placeholder="Nếu quản trị viên đã bật giới hạn truy cập"></label></details>
+          <details class="subtle-details"><summary>Xem văn bản đầu vào</summary><p class="muted small" id="routeScope"></p><textarea id="originalPreview" rows="7" readonly></textarea></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" id="stage-search">
+      <div class="panel panel-featured">
+        <div class="panel-heading">
+          <div><span class="section-index">03</span><div><h2>Tra cứu trực tuyến</h2><p class="muted">Tạo truy vấn từ keyword của tài liệu và tìm các patent ứng viên trên nguồn trực tuyến đã cấu hình.</p></div></div>
+        </div>
+
+        <div class="search-layout">
+          <div class="search-primary">
+            <p class="muted small" id="searchPillar"></p>
+            <label for="searchQueries">Truy vấn sẽ chạy</label>
+            <textarea id="searchQueries" rows="7" placeholder="Hệ thống sẽ tạo truy vấn từ các keyword nổi bật trong tài liệu đầu vào."></textarea>
+            <label class="check consent-card"><input type="checkbox" id="searchConsent"><span><strong>Cho phép gửi truy vấn kỹ thuật</strong><small>Chỉ nội dung truy vấn được gửi đến dịch vụ tìm kiếm bên ngoài.</small></span></label>
+            <div class="inline action-row"><button class="btn primary" id="runSearch">Bắt đầu tra cứu</button><button class="btn" id="stopSearch" hidden>Dừng</button></div>
+            <div class="status search-status" id="searchProgress">Chưa chạy tìm kiếm.</div>
+          </div>
+
+          <aside class="search-aside">
+            <div class="mini-card"><span class="mini-label">GHI CHÚ</span><p>Kết quả tìm kiếm là danh sách ứng viên để đọc tiếp; 0 kết quả không đồng nghĩa với có tính mới.</p></div>
+            <details class="subtle-details"><summary>Nhật ký nguồn và truy vấn</summary><div id="searchLog" class="log muted">Chưa có lượt tìm.</div></details>
+            <div class="manual-sources"><strong>Nguồn mở thủ công</strong><div id="sourceLinks" class="inline"></div></div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="between section-toolbar"><div><span class="micro-label">SHORTLIST</span><h2>Ứng viên tài liệu đối chứng</h2></div><button class="btn accent" id="autoPick">Đọc sâu & chọn D1–D3</button></div>
+        <p class="muted small">Xếp ưu tiên ban đầu dựa trên keyword overlap; sau đó hệ thống thử đọc sâu tối đa 10 ứng viên để chọn ba tài liệu cần xem trước.</p>
+        <div class="candidates" id="candidates">Chưa có kết quả tìm kiếm.</div>
+      </div>
+
+      <div class="panel">
+        <div class="section-toolbar"><div><span class="micro-label">PRIOR ART SET</span><h2>D1 – D3 đã chọn</h2></div></div>
+        <p class="muted">Có thể chọn từ danh sách ứng viên hoặc nhập lại thông tin nguồn để kiểm tra.</p>
+        <details class="subtle-details"><summary>Mở thông tin chi tiết D1–D3</summary><div id="priorSlots" class="prior-grid"></div></details>
+      </div>
+    </section>
+
+    <section class="stage" id="stage-compare">
+      <div class="panel panel-featured">
+        <div class="panel-heading">
+          <div><span class="section-index">04</span><div><h2>Đối chiếu bằng chứng</h2><p class="muted">So sánh từng claim-feature hoặc keyword với D1–D3 và giữ đường dẫn truy ngược về nguồn.</p></div></div>
+          <button class="btn accent" id="aiAssist">AI đọc sâu thêm</button>
+        </div>
+        <div id="compareMode" class="notice"></div>
+        <details id="aiOptions" class="subtle-details"><summary>Tùy chọn AI chuyên sâu</summary><label class="check"><input type="checkbox" id="privateMode" checked> Bảo mật: không gửi nội dung sang Gemini</label><label class="check"><input type="checkbox" id="aiConsent"> Tôi có quyền và đồng ý gửi đặc điểm cùng các đoạn văn bản D1–D3 sang Gemini.</label><label for="deepCode">Mã truy cập AI chuyên sâu<input type="password" id="deepCode" autocomplete="off" placeholder="Không nhập Gemini API key vào đây"></label></details>
+        <p class="status" id="aiProgress">AI chỉ đề xuất câu trích; chưa xác minh nguồn hoặc ý nghĩa kỹ thuật.</p>
+        <div class="evidence-legend"><span><i class="legend-dot yes"></i>Có</span><span><i class="legend-dot partial"></i>Một phần</span><span><i class="legend-dot uncertain"></i>Chưa chắc chắn</span><span><i class="legend-dot empty"></i>Chưa có dữ liệu</span></div>
+        <p class="small muted" id="reviewRankSummary" aria-live="polite"></p>
+        <div id="matrix" class="matrix"></div>
+      </div>
+    </section>
+
+    <section class="stage" id="stage-report">
+      <div class="panel panel-featured report-panel">
+        <div class="panel-heading">
+          <div><span class="section-index">05</span><div><h2>Nhận định sơ bộ và báo cáo</h2><p class="muted">Tổng hợp bằng chứng, giới hạn dữ liệu và ghi nhận phần rà soát của chuyên viên.</p></div></div>
+        </div>
+        <div id="conclusion" class="conclusion"></div>
+        <details class="subtle-details"><summary>Thông tin pháp lý bổ sung</summary><div id="claimDatesReview"></div><label class="check"><input type="checkbox" id="claimInputVerified"> Tôi đã đối chiếu bộ claims đang đánh giá với bản gốc hoặc bản dự thảo đã được phép sử dụng; kiểm tra lại các giới hạn kỹ thuật và quan hệ phụ thuộc.</label></details>
+        <label for="expertNote">Nhận xét cuối cùng của chuyên gia</label>
+        <textarea id="expertNote" rows="4" placeholder="Giới hạn tra cứu, điểm chưa kiểm tra, bằng chứng cần đối chiếu thêm..."></textarea>
+        <label class="check signoff-card"><input type="checkbox" id="expertSignoff"><span><strong>Đã xem nhận định sơ bộ</strong><small>Đây không phải quyết định cấp bằng hoặc ý kiến pháp lý cuối cùng.</small></span></label>
+        <div class="inline report-actions"><button class="btn primary" id="makeReport">Tạo báo cáo dự thảo</button><button class="btn" id="exportHtml">Xuất HTML</button><button class="btn" id="exportCsv">Xuất CSV</button></div>
+        <details class="subtle-details report-preview-wrap"><summary>Xem báo cáo đầy đủ</summary><div id="reportPreview" class="report-preview"></div></details>
+      </div>
+    </section>
+
+    <footer class="wizard">
+      <button type="button" id="back" class="btn wizard-back">← Quay lại</button>
+      <div class="wizard-center"><span id="wizardInfo">Bước 1/5</span><div class="wizard-track"><i></i></div></div>
+      <button type="button" id="next" class="btn primary wizard-next">Tiếp tục →</button>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
