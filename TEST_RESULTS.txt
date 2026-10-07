@@ -1,0 +1,16 @@
+PatentLens AI v60 — local validation
+
+PASS — app.js syntax (node --check)
+PASS — worker.js syntax (node --check)
+PASS — keyword_extractor.js syntax (node --check)
+PASS — DOM id audit: all static IDs present; routeRefresh is intentionally created dynamically by renderRoute()
+PASS — v49 backend provider/search implementation preserved; worker.js differs from uploaded v49 only at /api/health version 49.0.0 -> 60.0.0
+PASS — online AI queries are no longer used as search strings
+PASS — search plan uses one accepted keyword/concept per query; no generated "A" "B" bundle
+PASS — all discovery hits receive metadata topic-fit before deep-read shortlist
+PASS — deep-read ranking checks multiple source concepts on title/snippet/claims/description
+PASS — semantic similarity reduced to a small tie-breaker in final ranking
+PASS — Paper/NPL cannot be auto-selected into D1-D3
+PASS — D1-D3 are not force-filled when topic-fit is weak
+
+Note: external provider availability (Google Patents/EPO/SerpApi/Browser Run) can only be verified after deployment with the user's Cloudflare environment. The provider implementation itself was intentionally left unchanged from the uploaded v49 source because that version was reported to retrieve documents successfully.
