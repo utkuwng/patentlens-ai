@@ -1,0 +1,47 @@
+PatentLens AI v61 — local validation
+====================================
+
+Syntax
+- app.js: PASS
+- worker.js: PASS
+- keyword_extractor.js: PASS
+
+Language / OCR-garbage gate
+- csi whose seh cha wl -> rejected for search: PASS
+- uộid fug xông iq om -> rejected for search: PASS
+- wl wl evel tl tự -> rejected for search: PASS
+- el nea my eq mm -> rejected for search: PASS
+- et el ex gp gu -> rejected for search: PASS
+- 3ueg ru wid iq ony -> rejected for search: PASS
+- a3 glg 1ợns 8uọo bined -> rejected for search: PASS
+- garbage examples are not labeled English by detectLanguage: PASS
+
+Grounded bilingual fingerprint test
+Input concepts:
+- anchor: bình nóng lạnh / electric water heater
+- feature: kiểm soát lượng điện cấp cho thiết bị gia nhiệt / control electrical power supplied to heating element
+- feature: bộ điều khiển / controller
+
+Generated plan:
+- EN electric water heater
+- VI bình nóng lạnh
+- EN control electrical power supplied to heating element
+- VI kiểm soát lượng điện cấp cho thiết bị gia nhiệt
+- VI bộ điều khiển
+No AUTO: PASS
+Vietnamese phrase never emitted under EN: PASS
+
+Topic-fit synthetic check
+- Electric water-heater document with power-control feature -> high anchor/topic fit: PASS
+- Medical heating-pad document sharing generic heating/controller words -> low anchor/topic fit: PASS
+- High semantic score alone cannot rescue wrong-topic document into D1–D3: PASS
+
+Provider regression check
+Compared with v60/v49 provider base:
+- Google Patents direct block unchanged: PASS
+- Google Patents HTML block unchanged: PASS
+- patentSearch provider orchestration unchanged: PASS
+- Google patent detail block unchanged: PASS
+
+Important
+These are local logic/regression tests. External provider availability still depends on deployment/network at runtime.
