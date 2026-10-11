@@ -1,0 +1,14 @@
+PatentLens v63 static validation
+
+worker_version_63: PASS
+browser_content_fallback: PASS
+ddg_patent_fallback: PASS
+provider_circuit_breaker: PASS
+vi_to_en_workers_ai: PASS
+weak_candidates_retained: PASS
+weak_autopick: PASS
+user_can_reject_d123: PASS
+backend_log_language_preserved: PASS
+demo_files_present: PASS
+
+DOM refs missing from index: ['routeRefresh']
