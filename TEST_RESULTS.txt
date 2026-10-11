@@ -1,0 +1,14 @@
+PatentLens AI v64 demo loading checks
+
+PASS - app.js syntax
+PASS - worker.js syntax
+PASS - keyword_extractor.js syntax
+PASS - Worker static allowlist includes /demo_59281.pdf and /demo_59281.txt
+PASS - bundled demo PDF is the user-provided 59281 file
+PASS - bundled demo PDF has 19 pages (PDF 1.4, 1,433,269 bytes)
+PASS - PDF rendered successfully: 19/19 pages
+PASS - loadDemoDossier fetches both PDF + companion text
+PASS - PDF is opened through PDF.js and page count is verified before demo state is accepted
+PASS - prepared demo text avoids slow OCR during evaluator walkthrough while keeping actual PDF loaded as source
+PASS - OCR buttons are hidden only for prepared demo mode
+PASS - direct "Mở PDF demo" asset is no longer blocked by Worker allowlist
