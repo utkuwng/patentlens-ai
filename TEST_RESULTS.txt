@@ -1,0 +1,21 @@
+PatentLens AI v66 — validation
+
+PASS  app.js syntax (node --check)
+PASS  worker.js syntax (node --check)
+PASS  keyword_extractor.js syntax (node --check)
+PASS  bundled demo PDF SHA-256 exactly matches uploaded 59281(2).pdf
+PASS  bundled demo PDF has 19 pages
+PASS  new real PDF path calls prepareNewDossierUi(false)
+PASS  pasted-text path resets DEMO/downstream state before setInput
+PASS  Step 3 in demo auto-loads local D1–D3 walkthrough
+PASS  candidate buttons expose selected state (✓ Đã chọn D1/D2/D3)
+PASS  weak auto-picks carry explicit warning note
+PASS  weak candidates remain visible (up to 60)
+PASS  “Không ghi nhận D1–D3 & tiếp tục” path remains available
+PASS  demo D1/D2/D3 use three topic-relevant pre-priority publications
+PASS  demo evidence hints are labeled demo-curated-passage
+PASS  worker /api/health version = 66.0.0
+PASS  static DOM id audit; only routeRefresh is dynamic by design
+
+PASS  no user-facing "Khoảng ký tự" semantic offset remains
+PASS  semantic evidence without expert location uses human-readable unverified-location label
